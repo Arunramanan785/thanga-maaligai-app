@@ -14,11 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unzip the app files
+        run: |
+          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d unzipped; done
+          true
+
       - name: Find the app files
         run: |
-          DIR=$(dirname "$(find . -name App.js -not -path '*/node_modules/*' | head -1)")
-          if [ -z "$DIR" ] || [ "$DIR" = "." -a ! -f package.json ]; then echo "App.js not found - upload the app files first"; exit 1; fi
-          echo "APPDIR=$DIR" >> $GITHUB_ENV
+          APPJS=$(find . -name App.js -not -path '*/node_modules/*' | head -1)
+          if [ -z "$APPJS" ]; then echo "App.js not found - upload the app zip or files first"; exit 1; fi
+          DIR=$(dirname "$APPJS")
+          echo "APPDIR=$GITHUB_WORKSPACE/$DIR" >> $GITHUB_ENV
           echo "App files are in: $DIR"
 
       - uses: actions/setup-node@v4
