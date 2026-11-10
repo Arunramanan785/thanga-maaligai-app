@@ -1,0 +1,38 @@
+name: Laptop website
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip the app files
+        run: |
+          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d unzipped; done
+          true
+      - name: Find the app files
+        run: |
+          APPJS=$(find . -name App.js -not -path '*/node_modules/*' | head -1)
+          if [ -z "$APPJS" ]; then echo "App.js not found - upload the app zip first"; exit 1; fi
+          echo "APPDIR=$GITHUB_WORKSPACE/$(dirname "$APPJS")" >> $GITHUB_ENV
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Build the laptop version
+        run: cd "$APPDIR" && node scripts/build-web.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.APPDIR }}/site
+      - id: deployment
+        uses: actions/deploy-pages@v4
